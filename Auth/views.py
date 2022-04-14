@@ -1,15 +1,10 @@
-from base64 import urlsafe_b64decode
-from email.message import EmailMessage
-from lib2to3.pgen2.tokenize import generate_tokens
-import logging
 from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth import authenticate,login,logout
-from authentication import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage, send_mail
 from django.contrib.sites.shortcuts import get_current_site
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
@@ -68,30 +63,44 @@ def signup(request):
 
         # Email address confirmation Email
 
-        current_site =get_current_site(request)
-        email_subject='Confirm your Email @banjare-Login!!'
-        message2=render_to_string('email_confirmation.html',{
-            'name':myuser.first_name,
-            'domain':current_site.domain,
-            'uid':urlsafe_base64_encode(force_bytes(myuser.pk)),
-            'token':generate_token.make_token(myuser)
+        current_site = get_current_site(request)
+        email_subject = "Confirm your Email @ GFG - Django Login!!"
+        message2 = render_to_string('email_confirmation.html',{
+            
+            'name': myuser.first_name,
+            'domain': current_site.domain,
+            'uid': urlsafe_base64_encode(force_bytes(myuser.pk)),
+            'token': generate_token.make_token(myuser)
         })
-
-        email= EmailMessage(
-            email_subject,
-            message2,
-            settings.EMAIL_HOST_USER,
-            [myuser,email]
+        email = EmailMessage(
+        email_subject,
+        message2,
+        settings.EMAIL_HOST_USER,
+        [myuser.email],
         )
-
-        email.fail_silently= True
+        email.fail_silently = True
         email.send()
-
-
-
-
+        
         return redirect('signin')
     return render(request, "signup.html")
+
+
+def activate(request,uidb64,token):
+    try:
+        uid = force_text(urlsafe_base64_decode(uidb64))
+        myuser = User.objects.get(pk=uid)
+    except (TypeError,ValueError,OverflowError,User.DoesNotExist):
+        myuser = None
+
+    if myuser is not None and generate_token.check_token(myuser,token):
+        myuser.is_active = True
+        # user.profile.signup_confirmation = True
+        myuser.save()
+        login(request,myuser)
+        messages.success(request, "Your Account has been activated!!")
+        return redirect('signin')
+    else:
+        return render(request,'activation_failed.html')
 
 
 def signin(request):
@@ -118,25 +127,6 @@ def signout(request):
     logout(request)
     messages.success(request,"logged out succcesfully")
     return redirect('home')
-
-
-
-def activate(request, uid64, token):
-    try:
-        uid=force_text(urlsafe_base64_decode(uid64))
-        myuser= User.objects.get(pk=uid)
-    except (TypeError,ValueError,OverflowError, User.DoesNotExist):
-        myuser=None
-    
-
-    if myuser is not None and generate_token.check_token(myuser,token):
-        myuser.is_activate=True
-        myuser.save()
-        login(request,myuser)
-        return redirect('home')
-
-    else:
-        return render(request, 'activation_failed.html')
 
 
 

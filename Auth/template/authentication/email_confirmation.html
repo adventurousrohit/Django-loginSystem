@@ -1,10 +1,9 @@
 {% autoescape off %}
 
-Welcome to banjare Login
+ Welcome to GFG - Django Login!!
+ Hello {{ name }}!!
+ Please confirm your email by clicking on the following link.
 
-Helo {{name}}
+ Confirmation Link: http://{{ domain }}{% url 'activate' uidb64=uid token=token %} 
 
-Please confirm your email by clicking on this following link.
-
-Confirmation Link : http://{{domain}}{{% url 'activate' uidb65=uid token=token %}}
-{% endautoescape %}
+ {% endautoescape %}
